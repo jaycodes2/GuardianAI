@@ -1,4 +1,4 @@
-package com.example.guardianai.ui.theme
+package com.dsatm.guardianai.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package com.example.guardianai
+package com.dsatm.guardianai
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.guardianai.ui.theme.GuardianAITheme
+import com.dsatm.guardianai.ui.theme.GuardianAITheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,10 +19,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GuardianAITheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(modifier = Modifier.Companion.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "User",
-                        modifier = Modifier.padding(innerPadding)
+                        name = "User 7",
+                        modifier = Modifier.Companion.padding(innerPadding)
                     )
                 }
             }
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $name!",
+        text = "Hello $name",
         modifier = modifier
     )
 }
