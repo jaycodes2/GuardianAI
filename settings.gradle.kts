@@ -21,3 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "GuardianAI"
 include(":app")
+include(":image-redaction")
+include(":audio-redaction")
+include(":text-redaction")

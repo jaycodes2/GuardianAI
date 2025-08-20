@@ -11,6 +11,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/audio-redaction" />
+            <option value="$PROJECT_DIR$/image-redaction" />
+            <option value="$PROJECT_DIR$/text-redaction" />
           </set>
         </option>
       </GradleProjectSettings>

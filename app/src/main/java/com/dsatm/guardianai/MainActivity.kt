@@ -4,13 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.*
+import com.dsatm.guardianai.ui.screens.SplashScreen
+import com.dsatm.guardianai.ui.screens.MainContentScreen
 import com.dsatm.guardianai.ui.theme.GuardianAITheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +15,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GuardianAITheme {
-                Scaffold(modifier = Modifier.Companion.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "User 7",
-                        modifier = Modifier.Companion.padding(innerPadding)
+                // State to switch between splash and main content
+                var showSplash by remember { mutableStateOf(true) }
+
+                if (showSplash) {
+                    SplashScreen(
+                        onTimeout = {
+                            showSplash = false
+                        }
                     )
+                } else {
+                    MainContentScreen()
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    GuardianAITheme {
-        Greeting("User")
     }
 }
