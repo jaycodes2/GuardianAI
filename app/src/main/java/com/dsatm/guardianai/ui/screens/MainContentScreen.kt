@@ -19,7 +19,6 @@ fun MainContentScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 16.dp)
     ) {
         TopAppBarWithLogo(onMenuClick = { /* TODO */ })
 
@@ -29,15 +28,16 @@ fun MainContentScreen() {
             onModuleSelected = { selectedModule = it }
         )
 
-        Box(
+        // The content area now correctly fills the remaining space
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             when (selectedModule) {
-                0 -> FolderRedactionScreen()      // Directly use the Compose screen with ML Kit
-                1 -> AudioRedactionScreen()      // Unchanged
-                2 -> TextRedactionScreen()       // Unchanged
+                0 -> FolderRedactionScreen()
+                1 -> AudioRedactionScreen()
+                2 -> TextRedactionScreen()
             }
         }
     }

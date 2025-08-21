@@ -85,9 +85,6 @@ dependencies {
     implementation(project(":audio-redaction"))
     implementation(project(":text-redaction"))
 
-
-    implementation("com.google.mlkit:text-recognition:16.0.0")
-
     implementation("androidx.core:core-ktx:1.13.1")
 
     implementation(libs.androidx.core.ktx)
