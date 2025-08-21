@@ -42,3 +42,5 @@ captures/
 /audio-redaction/build/
 /image-redaction/build/
 /text-redaction/build/
+
+.kotlin/errors/

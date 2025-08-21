@@ -10,39 +10,51 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.documentfile.provider.DocumentFile
 import coil.compose.AsyncImage
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
+import java.util.regex.Pattern
 import kotlin.math.abs
 
-// This Composable function has been updated to use a CoroutineScope
 @Composable
-fun ImageRedactionScreen() {
+fun FolderRedactionScreen() {
     val context = LocalContext.current
-    var pickedFile by remember { mutableStateOf<File?>(null) }
-    var redactedFile by remember { mutableStateOf<File?>(null) }
+    var folderUri by remember { mutableStateOf<Uri?>(null) }
+    var processing by remember { mutableStateOf(false) }
+    var progressText by remember { mutableStateOf("") }
+    var processedFiles by remember { mutableStateOf(listOf<File>()) }
     val coroutineScope = rememberCoroutineScope()
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
-        uri?.let {
-            pickedFile = copyUriToFile(context, it)
-            redactedFile = null // Reset redacted image when a new image is picked
+        folderUri = uri
+        if (uri != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
         }
     }
 
@@ -53,224 +65,220 @@ fun ImageRedactionScreen() {
         verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Image Redaction")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                Text("Pick Image")
-            }
-
-            // The new Reset Button
-            Button(
-                onClick = {
-                    pickedFile = null
-                    redactedFile = null
-                }
-            ) {
-                Text("Reset")
-            }
-        }
-
-        pickedFile?.let { file ->
-            AsyncImage(
-                model = Uri.fromFile(file),
-                contentDescription = "Original Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
-        } ?: Text("No image selected")
+        Text(
+            text = "GuardianAi: Batch Sensitive Data Redaction",
+            style = MaterialTheme.typography.titleLarge
+        )
 
         Button(
-            onClick = {
-                pickedFile?.let { file ->
-                    coroutineScope.launch {
-                        redactedFile = redactImage(context, file)
+            onClick = { folderPickerLauncher.launch(null) },
+            enabled = !processing
+        ) { Text(if (folderUri == null) "Select Folder" else "Change Folder") }
+
+        folderUri?.let { uri ->
+            Button(
+                onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        processing = true
+                        progressText = "Scanning images..."
+                        val imgDocs = getAllImagesInFolder(context, uri)
+                        val outputDir = File(context.getExternalFilesDir("images"), "redacted")
+                        outputDir.mkdirs()
+                        val results = mutableListOf<File>()
+                        for ((i, inputDoc) in imgDocs.withIndex()) {
+                            progressText = "Processing image ${i+1} of ${imgDocs.size}"
+                            val redacted = redactSensitiveInImage(context, inputDoc, outputDir)
+                            if (redacted != null) results.add(redacted)
+                        }
+                        processedFiles = results
+                        progressText = "Completed: ${results.size} redacted images saved to ${outputDir.absolutePath}"
+                        processing = false
+                    }
+                },
+                enabled = folderUri != null && !processing
+            ) {
+                Text("Scan & Redact All Images")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(progressText, style = MaterialTheme.typography.bodyMedium)
+
+        // **UPDATED UI FOR SCROLLABLE IMAGES**
+        if (processedFiles.isNotEmpty()) {
+            Text(
+                text = "Redacted Images:",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(processedFiles) { file ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "File: ${file.name}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            AsyncImage(
+                                model = Uri.fromFile(file),
+                                contentDescription = "Redacted Image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp), // Height constraint
+                                contentScale = ContentScale.Fit // Ensures the image fits without cropping
+                            )
+                        }
                     }
                 }
-            },
-            enabled = pickedFile != null
-        ) {
-            Text("Redact Image")
-        }
-
-        redactedFile?.let { file ->
-            Text("Redacted Result:")
-            AsyncImage(
-                model = Uri.fromFile(file),
-                contentDescription = "Redacted Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
-        }
-    }
-}
-
-// Copy content URI to a file
-fun copyUriToFile(context: Context, uri: Uri): File {
-    val inputStream: InputStream = context.contentResolver.openInputStream(uri)!!
-    val outputFile = File(context.getExternalFilesDir("images"), "input_image.jpg")
-    val outputStream: OutputStream = outputFile.outputStream()
-    inputStream.copyTo(outputStream)
-    inputStream.close()
-    outputStream.close()
-    return outputFile
-}
-
-// Main redaction function updated to be a suspend function and use the new blur logic
-suspend fun redactImage(context: Context, imageFile: File): File {
-    val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
-    val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-
-    val inputImage = InputImage.fromFilePath(context, Uri.fromFile(imageFile))
-    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-    val visionText = try {
-        recognizer.process(inputImage).await()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
-    }
-
-    visionText?.let {
-        val canvas = Canvas(mutableBitmap)
-        for (block in it.textBlocks) {
-            for (line in block.lines) {
-                val rect = line.boundingBox ?: continue
-                val paint = Paint().apply {
-                    setARGB(255, 0, 0, 0) // Black color
-                }
-                canvas.drawRect(rect, paint)
             }
         }
     }
-
-    val outputFile = File(context.getExternalFilesDir("images"), "input_image_redacted.jpg")
-    FileOutputStream(outputFile).use { fos ->
-        mutableBitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
-    }
-
-    return outputFile
 }
 
-// Alternative for blurring a bitmap region.
-// This is a simple, pure Kotlin/Java Box Blur algorithm.
-fun blurBitmapRegion(bitmap: Bitmap, rect: Rect): Bitmap {
-    val width = rect.width()
-    val height = rect.height()
-    val radius = 25
-    val newBitmap = Bitmap.createBitmap(bitmap, rect.left, rect.top, width, height)
+private fun getAllImagesInFolder(context: Context, treeUri: Uri): List<DocumentFile> {
+    val documents = mutableListOf<DocumentFile>()
+    val rootDocument = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
 
-    val w = newBitmap.width
-    val h = newBitmap.height
-    val pix = IntArray(w * h)
-    newBitmap.getPixels(pix, 0, w, 0, 0, w, h)
+    fun findImages(document: DocumentFile) {
+        if (document.isDirectory) {
+            document.listFiles().forEach { child ->
+                findImages(child)
+            }
+        } else if (document.isFile && document.type?.startsWith("image/") == true) {
+            documents.add(document)
+        }
+    }
+    findImages(rootDocument)
+    return documents
+}
 
-    val wm = w - 1
-    val hm = h - 1
-    val div = radius + radius + 1
+private suspend fun redactSensitiveInImage(context: Context, inputDoc: DocumentFile, outputDir: File): File? {
+    val inputStream = withContext(Dispatchers.IO) {
+        context.contentResolver.openInputStream(inputDoc.uri)
+    } ?: return null
 
-    val r = IntArray(w * h)
-    val g = IntArray(w * h)
-    val b = IntArray(w * h)
+    val bitmap = BitmapFactory.decodeStream(inputStream)
+    val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
 
-    var rsum: Int
-    var gsum: Int
-    var bsum: Int
+    val inputImage = InputImage.fromFilePath(context, inputDoc.uri)
+    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-    var x: Int
-    var y: Int
+    val visionText = try { recognizer.process(inputImage).await() } catch (e: Exception) { e.printStackTrace(); null }
 
-    var i: Int
-    var p: Int
-    var yp: Int
-    var yi: Int
+    visionText?.let { doc ->
+        val canvas = Canvas(mutableBitmap)
+        val paint = Paint().apply { isAntiAlias = true }
 
-    val vmin = IntArray(maxOf(w, h))
-    val vmax = IntArray(maxOf(w, h))
+        for (block in doc.textBlocks) {
+            for (line in block.lines) {
+                if (line.confidence > 0.7 && line.boundingBox != null) {
+                    val region = line.boundingBox!!
+                    val blurred = blurBitmapRegion(mutableBitmap, region)
+                    val sourceRect = Rect(0, 0, blurred.width, blurred.height)
+                    canvas.drawBitmap(blurred, sourceRect, region, paint)
+                }
+            }
+        }
+    }
+    val outFile = File(outputDir, inputDoc.name + "_redacted.jpg")
+    FileOutputStream(outFile).use { fos ->
+        mutableBitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+    }
+    return outFile
+}
 
-    var yw: Int = 0
+private fun blurBitmapRegion(src: Bitmap, rect: Rect, radius: Int = 20): Bitmap {
+    val width = rect.width().coerceAtLeast(1)
+    val height = rect.height().coerceAtLeast(1)
+    val cropped = Bitmap.createBitmap(src, rect.left, rect.top, width, height)
+
+    val blurred = cropped.copy(cropped.config ?: Bitmap.Config.ARGB_8888, true)
+    val w = blurred.width
+    val h = blurred.height
+    val pixels = IntArray(w * h)
+    blurred.getPixels(pixels, 0, w, 0, 0, w, h)
+
+    val newPixels = pixels.copyOf()
+
+    val div = radius * 2 + 1
     val dv = IntArray(256 * div)
-
-    for (j in 0 until 256 * div) {
-        dv[j] = j / div
+    for (i in 0 until 256 * div) {
+        dv[i] = i / div
     }
 
+    // Horizontal Pass
     for (y in 0 until h) {
-        rsum = 0
-        gsum = 0
-        bsum = 0
+        var rSum = 0
+        var gSum = 0
+        var bSum = 0
 
         for (i in -radius..radius) {
-            p = pix[yw + abs(i)]
-            rsum += (p and 0xff0000) shr 16
-            gsum += (p and 0x00ff00) shr 8
-            bsum += p and 0x0000ff
+            val xClamp = (0 + i).coerceIn(0, w - 1)
+            val p = pixels[y * w + xClamp]
+            rSum += (p shr 16) and 0xFF
+            gSum += (p shr 8) and 0xFF
+            bSum += p and 0xFF
         }
 
         for (x in 0 until w) {
-            r[y * w + x] = dv[rsum]
-            g[y * w + x] = dv[gsum]
-            b[y * w + x] = dv[bsum]
+            newPixels[y * w + x] = (0xFF shl 24) or (dv[rSum] shl 16) or (dv[gSum] shl 8) or dv[bSum]
 
-            if (y == 0) {
-                vmin[x] = minOf(x + radius + 1, wm)
-                vmax[x] = maxOf(x - radius, 0)
-            }
+            val pIn = pixels[y * w + (x + radius + 1).coerceIn(0, w - 1)]
+            val pOut = pixels[y * w + (x - radius).coerceIn(0, w - 1)]
 
-            p = pix[yw + vmin[x]]
-            rsum += (p and 0xff0000) shr 16
-            gsum += (p and 0x00ff00) shr 8
-            bsum += p and 0x0000ff
+            rSum += (pIn shr 16) and 0xFF
+            gSum += (pIn shr 8) and 0xFF
+            bSum += pIn and 0xFF
 
-            p = pix[yw + vmax[x]]
-            rsum -= (p and 0xff0000) shr 16
-            gsum -= (p and 0x00ff00) shr 8
-            bsum -= p and 0x0000ff
+            rSum -= (pOut shr 16) and 0xFF
+            gSum -= (pOut shr 8) and 0xFF
+            bSum -= pOut and 0xFF
         }
-        yw += w
     }
 
+    // Vertical Pass
     for (x in 0 until w) {
-        rsum = 0
-        gsum = 0
-        bsum = 0
+        var rSum = 0
+        var gSum = 0
+        var bSum = 0
 
-        yp = -radius * w
         for (i in -radius..radius) {
-            yi = maxOf(0, yp + abs(i) * w)
-            rsum += r[yi + x]
-            gsum += g[yi + x]
-            bsum += b[yi + x]
+            val yClamp = (0 + i).coerceIn(0, h - 1)
+            val p = newPixels[yClamp * w + x]
+            rSum += (p shr 16) and 0xFF
+            gSum += (p shr 8) and 0xFF
+            bSum += p and 0xFF
         }
 
-        yi = x
         for (y in 0 until h) {
-            pix[yi] = 0xff000000.toInt() or (dv[rsum] shl 16) or (dv[gsum] shl 8) or dv[bsum]
+            val pIn = newPixels[(y + radius + 1).coerceIn(0, h - 1) * w + x]
+            val pOut = newPixels[(y - radius).coerceIn(0, h - 1) * w + x]
 
-            if (x == 0) {
-                vmin[y] = minOf(y + radius + 1, hm) * w
-                vmax[y] = maxOf(y - radius, 0) * w
-            }
+            rSum += (pIn shr 16) and 0xFF
+            gSum += (pIn shr 8) and 0xFF
+            bSum += pIn and 0xFF
 
-            p = x + vmin[y]
-            rsum += r[p]
-            gsum += g[p]
-            bsum += b[p]
+            rSum -= (pOut shr 16) and 0xFF
+            gSum -= (pOut shr 8) and 0xFF
+            bSum -= pOut and 0xFF
 
-            p = x + vmax[y]
-            rsum -= r[p]
-            gsum -= g[p]
-            bsum -= b[p]
-
-            yi += w
+            pixels[y * w + x] = (0xFF shl 24) or (dv[rSum] shl 16) or (dv[gSum] shl 8) or dv[bSum]
         }
     }
 
-    newBitmap.setPixels(pix, 0, w, 0, 0, w, h)
-    return newBitmap
+    blurred.setPixels(pixels, 0, w, 0, 0, w, h)
+    return blurred
 }

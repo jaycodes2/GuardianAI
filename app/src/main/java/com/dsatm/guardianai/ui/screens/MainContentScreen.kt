@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.dsatm.guardianai.audio.AudioRedactionScreen
-import com.dsatm.guardianai.image.ImageRedactionScreen
+import com.dsatm.guardianai.image.FolderRedactionScreen
 import com.dsatm.guardianai.text.TextRedactionScreen
 import com.dsatm.guardianai.ui.components.ModuleSelectorBar
 import com.dsatm.guardianai.ui.components.TopAppBarWithLogo
@@ -35,7 +35,7 @@ fun MainContentScreen() {
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             when (selectedModule) {
-                0 -> ImageRedactionScreen()      // Directly use the Compose screen with ML Kit
+                0 -> FolderRedactionScreen()      // Directly use the Compose screen with ML Kit
                 1 -> AudioRedactionScreen()      // Unchanged
                 2 -> TextRedactionScreen()       // Unchanged
             }
