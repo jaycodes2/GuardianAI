@@ -12,6 +12,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +47,7 @@ fun FolderRedactionScreen() {
     var progressText by remember { mutableStateOf("") }
     var processedFiles by remember { mutableStateOf(listOf<File>()) }
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -60,15 +63,16 @@ fun FolderRedactionScreen() {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+            .fillMaxWidth()
+            .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "GuardianAi: Batch Sensitive Data Redaction",
             style = MaterialTheme.typography.titleLarge
         )
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = { folderPickerLauncher.launch(null) },
@@ -104,7 +108,6 @@ fun FolderRedactionScreen() {
         Spacer(modifier = Modifier.height(8.dp))
         Text(progressText, style = MaterialTheme.typography.bodyMedium)
 
-        // **UPDATED UI FOR SCROLLABLE IMAGES**
         if (processedFiles.isNotEmpty()) {
             Text(
                 text = "Redacted Images:",
@@ -113,7 +116,9 @@ fun FolderRedactionScreen() {
             )
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp), // Constrain the LazyColumn height to allow the parent to scroll
                 contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -137,8 +142,8 @@ fun FolderRedactionScreen() {
                                 contentDescription = "Redacted Image",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 300.dp), // Height constraint
-                                contentScale = ContentScale.Fit // Ensures the image fits without cropping
+                                    .heightIn(max = 300.dp),
+                                contentScale = ContentScale.Fit
                             )
                         }
                     }
@@ -148,7 +153,7 @@ fun FolderRedactionScreen() {
     }
 }
 
-private fun getAllImagesInFolder(context: Context, treeUri: Uri): List<DocumentFile> {
+private fun getAllImagesInFolder(context: Context, treeUri: Uri): List<DocumentFile> { /* ... (unchanged) */
     val documents = mutableListOf<DocumentFile>()
     val rootDocument = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
 
@@ -165,7 +170,7 @@ private fun getAllImagesInFolder(context: Context, treeUri: Uri): List<DocumentF
     return documents
 }
 
-private suspend fun redactSensitiveInImage(context: Context, inputDoc: DocumentFile, outputDir: File): File? {
+private suspend fun redactSensitiveInImage(context: Context, inputDoc: DocumentFile, outputDir: File): File? { /* ... (unchanged) */
     val inputStream = withContext(Dispatchers.IO) {
         context.contentResolver.openInputStream(inputDoc.uri)
     } ?: return null
@@ -200,7 +205,7 @@ private suspend fun redactSensitiveInImage(context: Context, inputDoc: DocumentF
     return outFile
 }
 
-private fun blurBitmapRegion(src: Bitmap, rect: Rect, radius: Int = 20): Bitmap {
+private fun blurBitmapRegion(src: Bitmap, rect: Rect, radius: Int = 20): Bitmap { /* ... (unchanged) */
     val width = rect.width().coerceAtLeast(1)
     val height = rect.height().coerceAtLeast(1)
     val cropped = Bitmap.createBitmap(src, rect.left, rect.top, width, height)
