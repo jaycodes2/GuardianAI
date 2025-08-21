@@ -1,7 +1,7 @@
 package com.dsatm.guardianai.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,28 +21,23 @@ fun MainContentScreen() {
             .fillMaxSize()
             .padding(bottom = 16.dp)
     ) {
-        // Top App Bar
-        TopAppBarWithLogo(
-            onMenuClick = { /* TODO: Open menu */ }
-        )
+        TopAppBarWithLogo(onMenuClick = { /* TODO */ })
 
-        // Module selector (pills)
         ModuleSelectorBar(
             modules = modules,
             selectedIndex = selectedModule,
             onModuleSelected = { selectedModule = it }
         )
 
-        // Content area
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             when (selectedModule) {
-                0 -> ImageRedactionScreen()
-                1 -> AudioRedactionScreen()
-                2 -> TextRedactionScreen()
+                0 -> ImageRedactionScreen()      // Directly use the Compose screen with ML Kit
+                1 -> AudioRedactionScreen()      // Unchanged
+                2 -> TextRedactionScreen()       // Unchanged
             }
         }
     }

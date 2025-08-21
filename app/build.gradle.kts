@@ -1,9 +1,12 @@
+// file: build.gradle.kts (Module: app)
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    id("com.chaquo.python")
+    // IMPORTANT: Make sure the Chaquopy plugin is applied.
+//    id("com.chaquo.python")
 }
 
 android {
@@ -19,11 +22,39 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
-        }
-
+        // The ndk block must be here, inside the 'android.defaultConfig' block,
+        // not inside the 'chaquopy' block. This is the standard Android Gradle
+        // way of specifying supported ABIs.
+//        ndk {
+//            abiFilters += listOf("arm64-v8a", "x86_64")
+//        }
     }
+
+    // Chaquopy's configuration now resides in its own top-level block.
+    // This is the new, preferred way to configure Chaquopy for Gradle Kotlin DSL.
+//    chaquopy {
+//        // This is where we configure the Python source code directory.
+//        // It tells Chaquopy where to find your .py files.
+//        sourceSets {
+//            getByName("main") {
+//                srcDirs("src/main/python")
+//            }
+//        }
+//
+//        defaultConfig {
+//            // This is the critical part for installing your Python dependencies.
+//            // easyocr depends on numpy and opencv-python-headless.
+//            // All three must be installed together for your script to function.
+//            // The python-bidi dependency is often needed by easyocr for languages
+//            // with right-to-left text, but is not strictly necessary for English text
+//            // and can be a source of errors, so it's a good idea to keep it commented out.
+//            pip {
+//                install("numpy")
+//                install("pytesseract")
+//                install("opencv-python-headless")
+//            }
+//        }
+//    }
 
     buildTypes {
         release {
@@ -47,10 +78,17 @@ android {
     }
 }
 
+// All other dependencies go here as you had them.
 dependencies {
+    // ...
     implementation(project(":image-redaction"))
     implementation(project(":audio-redaction"))
     implementation(project(":text-redaction"))
+
+
+    implementation("com.google.mlkit:text-recognition:16.0.0")
+
+    implementation("androidx.core:core-ktx:1.13.1")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
