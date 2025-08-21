@@ -14,26 +14,38 @@ GuardianAI is an Android application designed to detect and redact sensitive dat
 GuardianAI/
 ├─ app/
 │  ├─ src/
+│  │  ├─ androidTest
 │  │  ├─ main/
+│  │  │  ├─ AndroidManifest.xml
 │  │  │  ├─ java/com/dsatm/guardianai/
-│  │  │  │  ├─ MainActivity.kt
+│  │  │  │  ├─ 
 │  │  │  │  └─ ui/
 │  │  │  │     ├─ components/
-│  │  │  │     └─ screens/
+│  │  │  │     ├─ screens/
+│  │  │  │     └─ theme/
+│  │  │  ├─ python/guardian_ai/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ audio/
+│  │  │  │  │  ├─ redact.py
+│  │  │  │  │  └─ __init__.py
+│  │  │  │  ├─ image/
+│  │  │  │  │  ├─ redact.py
+│  │  │  │  │  └─ __init__.py
+│  │  │  │  ├─ text/
+│  │  │  │  │  ├─ redact.py
+│  │  │  │  │  └─ __init__.py
+│  │  │  │  └─ utils/__init__.py
 │  │  │  └─ res/
-│  │  └─ AndroidManifest.xml
-│  └─ build.gradle.kts
-├─ image-redaction/
-│  ├─ src/
-│  └─ python/
+│  └─ test/
+│
 ├─ audio-redaction/
-│  ├─ src/
-│  └─ python/
-├─ text-redaction/
-│  ├─ src/
-│  └─ python/
-├─ settings.gradle.kts
-└─ build.gradle.kts
+│  └─ src/
+│
+├─ image-redaction/
+│  └─ src/
+│
+└─ text-redaction/
+   └─ src/
 ```
 
 ## Module Guidelines
@@ -53,10 +65,10 @@ interface TextRedactionModule {
 }
 ```
 
-Place all Python scripts inside the module's `python/` folder, use relative imports, and call functions via the Kotlin wrapper using Chaquopy.
+Place all Python scripts inside the `app/src/main/python/guardian_ai/` folder, use relative imports, and call functions via the Kotlin wrapper using Chaquopy.
 
 ## How to Add New Logic
-1. Add Python scripts to the appropriate module's `python/` folder.
+1. Add Python scripts to the appropriate module's `python/guardian_ai/` folder.
 2. Ensure each Python function matches the Kotlin wrapper’s expected signature.
 3. Test Python functions independently before integration.
 4. Call the Python function from Kotlin using the wrapper interface.
@@ -78,4 +90,3 @@ cd GuardianAI
 - The app is fully offline.
 - All sensitive data handling is local, encrypted, and protected.
 - The UI is modular, allowing future expansion of modules or features without impacting existing code.
-
