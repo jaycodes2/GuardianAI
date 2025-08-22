@@ -1,3 +1,4 @@
+// File: MainContentScreen.kt
 package com.dsatm.guardianai.ui.screens
 
 import android.net.Uri
@@ -31,8 +32,9 @@ fun MainContentScreen() {
         // The content area now correctly fills the remaining space
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                // Use weight to make this column take up all the remaining vertical space
+                .weight(1f)
+                .padding(horizontal = 16.dp, vertical = 20.dp)
         ) {
             when (selectedModule) {
                 0 -> FolderRedactionScreen()

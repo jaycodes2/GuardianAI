@@ -86,6 +86,8 @@ dependencies {
     implementation(project(":text-redaction"))
 
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation("com.google.mlkit:entity-extraction:16.0.0-beta2")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
