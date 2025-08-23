@@ -12,7 +12,6 @@ GuardianAI is an Android application designed to detect and redact sensitive dat
 The project follows a modular architecture, with a core module for shared logic and dedicated feature modules for each redaction type.
 ```
 GuardianAI/
-GuardianAI/
 ├── app/                      # Main application module. Handles navigation and UI.
 ├── audio-redaction/          # Module for on-device audio transcription and redaction.
 │   └── src/main/assets/      # Directory for audio-specific ML models (.tflite).
