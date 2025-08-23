@@ -80,31 +80,34 @@ android {
     }
 }
 
+// file: build.gradle.kts (Module: app)
 // All other dependencies go here as you had them.
 dependencies {
-    // ...
+    // This is the correct way to use the BOM. It manages versions for all
+    // compose-related libraries to ensure they are compatible.
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    debugImplementation(composeBom) // It's a good practice to include it here too
 
-    // UI and Core Compose libraries
+    // Use the correctly defined libraries from the BOM (no version numbers needed)
+    implementation(libs.androidx.activity.compose)
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0") // This is also good practice
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation(libs.androidx.core.ktx)
 
+    // Other core Android libraries
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
-    // Jetpack Compose dependencies
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.12.0-alpha06")
-
-    // Navigation dependencies
+    // Navigation and Biometric libraries (should have versions specified separately or via a TOML file)
     implementation("androidx.navigation:navigation-compose:2.9.3")
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation("androidx.core:core-ktx:1.13.1")
 
     // Link to the feature modules
     implementation(project(":image-redaction"))
@@ -113,24 +116,25 @@ dependencies {
     implementation(project(":core"))
 
     // Add this for compose previews
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation(libs.androidx.ui.tooling)
 
+    // Add this for compose icons
     implementation("androidx.compose.material:material-icons-extended")
 
-
-    //external
+    // External libraries
     implementation("com.alphacephei:vosk-android:0.3.47")
     implementation("com.google.mlkit:entity-extraction:16.0.0-beta2")
 
-    // --- Hilt for Dependency Injection ---
+    // Hilt for Dependency Injection
     implementation("com.google.dagger:hilt-android:2.56.2")
     ksp("com.google.dagger:hilt-compiler:2.56.2")
 
-    // --- Testing Dependencies ---
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Testing Dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
