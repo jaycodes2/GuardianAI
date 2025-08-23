@@ -7,83 +7,32 @@ GuardianAI is an Android application designed to detect and redact sensitive dat
 - **Offline Processing:** All detection and redaction happen on-device.
 - **Modular Architecture:** Separate modules for Image, Audio, and Text redaction.
 - **Secure UI:** Blurred previews of sensitive content are shown by default. Original content is decrypted or displayed only after user authentication.
-- **Python Backend Integration:** Each module can use Python scripts for AI/ML-based detection and redaction, integrated using Chaquopy.
 
 ## Project Structure
+The project follows a modular architecture, with a core module for shared logic and dedicated feature modules for each redaction type.
 ```
 GuardianAI/
-├─ app/
-│  ├─ src/
-│  │  ├─ androidTest
-│  │  ├─ main/
-│  │  │  ├─ AndroidManifest.xml
-│  │  │  ├─ java/com/dsatm/guardianai/
-│  │  │  │  ├─ 
-│  │  │  │  └─ ui/
-│  │  │  │     ├─ components/
-│  │  │  │     ├─ screens/
-│  │  │  │     └─ theme/
-│  │  │  ├─ python/guardian_ai/
-│  │  │  │  ├─ __init__.py
-│  │  │  │  ├─ audio/
-│  │  │  │  │  ├─ redact.py
-│  │  │  │  │  └─ __init__.py
-│  │  │  │  ├─ image/
-│  │  │  │  │  ├─ redact.py
-│  │  │  │  │  └─ __init__.py
-│  │  │  │  ├─ text/
-│  │  │  │  │  ├─ redact.py
-│  │  │  │  │  └─ __init__.py
-│  │  │  │  └─ utils/__init__.py
-│  │  │  └─ res/
-│  └─ test/
-│
-├─ audio-redaction/
-│  └─ src/
-│
-├─ image-redaction/
-│  └─ src/
-│
-└─ text-redaction/
-   └─ src/
+GuardianAI/
+├── app/                      # Main application module. Handles navigation and UI.
+├── audio-redaction/          # Module for on-device audio transcription and redaction.
+│   └── src/main/assets/      # Directory for audio-specific ML models (.tflite).
+├── core/                     # Shared logic module, including security and utilities.
+├── image-redaction/          # Module for on-device image/video object detection and redaction.
+│   └── src/main/assets/      # Directory for image-specific ML models (.tflite).
+├── text-redaction/           # Module for on-device text analysis and redaction.
+│   └── src/main/assets/      # Directory for text-specific ML models (.tflite).
 ```
 
-## Module Guidelines
-Each module has a Kotlin wrapper interface used by the app to call Python scripts:
-
-```kotlin
-interface ImageRedactionModule {
-    fun redactImage(inputPath: String, outputPath: String): Boolean
-}
-
-interface AudioRedactionModule {
-    fun redactAudio(inputPath: String, outputPath: String): Boolean
-}
-
-interface TextRedactionModule {
-    fun redactText(inputText: String): String
-}
-```
-
-Place all Python scripts inside the `app/src/main/python/guardian_ai/` folder, use relative imports, and call functions via the Kotlin wrapper using Chaquopy.
-
-## How to Add New Logic
-1. Add Python scripts to the appropriate module's `python/guardian_ai/` folder.
-2. Ensure each Python function matches the Kotlin wrapper’s expected signature.
-3. Test Python functions independently before integration.
-4. Call the Python function from Kotlin using the wrapper interface.
 
 ## Dependencies
 - **Android:** Jetpack Compose, Material3
-- **Python (via Chaquopy):** numpy, Pillow, OpenCV, Torch/TFLite (as needed for AI/ML)
 
 ## Build & Run
 ```bash
-git clone <repository-url>
+git clone https://github.com/Manushivuz/GuardianAI
 cd GuardianAI
 ```
 1. Open the project in Android Studio.
-2. Sync Gradle and ensure Chaquopy plugin is configured.
 3. Build and run on a device with Android 26+.
 
 ## Notes
