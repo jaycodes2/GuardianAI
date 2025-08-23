@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 
     // IMPORTANT: Make sure the Chaquopy plugin is applied.
 //    id("com.chaquo.python")
@@ -81,26 +83,53 @@ android {
 // All other dependencies go here as you had them.
 dependencies {
     // ...
-    implementation(project(":image-redaction"))
-    implementation(project(":audio-redaction"))
-    implementation(project(":text-redaction"))
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("com.alphacephei:vosk-android:0.3.47")
-    implementation("com.google.mlkit:entity-extraction:16.0.0-beta2")
-
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
+    // UI and Core Compose libraries
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.core:core-ktx:1.13.1")
+
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Jetpack Compose dependencies
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.12.0-alpha06")
+
+    // Navigation dependencies
+    implementation("androidx.navigation:navigation-compose:2.9.3")
+
+    // Link to the feature modules
+    implementation(project(":image-redaction"))
+    implementation(project(":audio-redaction"))
+    implementation(project(":text-redaction"))
+    implementation(project(":core"))
+
+    // Add this for compose previews
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
+    implementation("androidx.compose.material:material-icons-extended")
+
+
+    //external
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation("com.google.mlkit:entity-extraction:16.0.0-beta2")
+
+    // --- Hilt for Dependency Injection ---
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    ksp("com.google.dagger:hilt-compiler:2.56.2")
+
+    // --- Testing Dependencies ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

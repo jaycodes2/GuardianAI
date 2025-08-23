@@ -1,17 +1,19 @@
+// file: build.gradle.kts (Module: image-redaction)
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")   // Compose support for library
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
-    namespace = "com.dsatm.guardianai.image"
+    namespace = "com.dsatm.image_redaction"
     compileSdk = 36
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 36
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -23,57 +25,39 @@ android {
             )
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
 
+    // ADD THIS BLOCK
     buildFeatures {
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"   // match app module version
     }
 }
 
 dependencies {
-    // Compose + UI
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.activity.compose)
+    // Add Compose BOM
+    val composeBom = platform("androidx.compose:compose-bom:2025.08.00")
+    implementation(composeBom)
 
-    // AndroidX Core / Lifecycle
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    // Link to the core module
+    implementation(project(":core"))
 
-    // Image loading
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    // Jetpack Compose dependencies
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
 
-    // ML Kit Text Recognition
-    implementation("com.google.mlkit:text-recognition:16.0.0")
-
-    implementation("androidx.core:core-ktx:1.13.1")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.1")
+    // Add this for compose previews
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
 
-    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-
-    // Debug tools
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 }
