@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         // Correctly includes all dependencies from Google's repository
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
@@ -21,3 +22,4 @@ include(":core")
 include(":text-redaction")
 include(":audio-redaction")
 include(":image-redaction")
+include(":ner")

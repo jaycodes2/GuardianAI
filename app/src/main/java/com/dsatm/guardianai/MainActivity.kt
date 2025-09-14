@@ -48,7 +48,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Image : Screen("image_screen", "Image", Icons.Default.Image)
     object Audio : Screen("audio_screen", "Audio", Icons.Default.Mic)
     object Text : Screen("text_screen", "Text", Icons.Default.TextFields)
-
     object Crypto : Screen("crypto_screen", "Crypto", Icons.Default.Lock)
 }
 

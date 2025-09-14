@@ -44,6 +44,8 @@ dependencies {
     // Link to the core module
     implementation(project(":core"))
 
+    implementation(project(":ner"))
+
     // Jetpack Compose dependencies
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
