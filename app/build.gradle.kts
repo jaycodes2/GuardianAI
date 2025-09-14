@@ -114,6 +114,8 @@ dependencies {
     implementation(project(":audio-redaction"))
     implementation(project(":text-redaction"))
     implementation(project(":core"))
+    implementation(project(":ner"))
+
 
     // Add this for compose previews
     debugImplementation(libs.androidx.ui.tooling)

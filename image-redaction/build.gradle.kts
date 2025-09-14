@@ -44,8 +44,11 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.08.00")
     implementation(composeBom)
 
+
     // Link to the core module
     implementation(project(":core"))
+    //ner module
+    implementation(project(":ner"))
 
     // Jetpack Compose dependencies
     implementation("androidx.compose.ui:ui")
