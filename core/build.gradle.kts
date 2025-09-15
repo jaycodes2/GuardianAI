@@ -33,6 +33,8 @@ android {
 }
 
 dependencies {
+    implementation("com.alphacephei:vosk-android:0.3.70")
+    implementation("org.json:json:20231013")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
