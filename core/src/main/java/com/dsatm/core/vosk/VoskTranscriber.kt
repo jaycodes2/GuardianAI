@@ -68,7 +68,7 @@ class VoskTranscriber(private val context: Context) {
     // This is the new, manual unpacking logic. It replaces StorageService completely.
     @Throws(IOException::class)
     private fun unpackModelFromAssets(): String {
-        val modelName = "vosk-model-small-en-us-0.15"
+        val modelName = "vosk-model-en-us-0.22-lgraph"
         val targetDir = File(context.filesDir, "vosk-model-store") // A dedicated, clean directory
         val modelPath = File(targetDir, modelName)
 

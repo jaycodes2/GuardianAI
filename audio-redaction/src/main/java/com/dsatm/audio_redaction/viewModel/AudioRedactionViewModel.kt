@@ -8,7 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.dsatm.audio_redaction.RedactionManager
 import com.dsatm.audio_redaction.audio.AudioConverter
 import com.dsatm.core.vosk.VoskTranscriber
-import com.dsatm.ner.MobileBertAnalyzer
+import com.dsatm.ner.BertNerOnnxManager
+import com.dsatm.ner.PiiEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,12 +28,26 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
     val transcriptionText = _transcriptionText.asStateFlow()
     private val _redactedText = MutableStateFlow("")
     val redactedText = _redactedText.asStateFlow()
+    private val _piiEntities = MutableStateFlow<List<PiiEntity>>(emptyList())
+    val piiEntities = _piiEntities.asStateFlow()
 
     // --- Service instances ---
     private val voskTranscriber = VoskTranscriber(application)
-    private val mobileBertAnalyzer = MobileBertAnalyzer(application)
+    private val bertNerOnnxManager = BertNerOnnxManager(application)
     private val redactionManager = RedactionManager(application)
     private val audioConverter = AudioConverter(application)
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            _status.value = "Initializing NER model..."
+            try {
+                bertNerOnnxManager.initialize()
+                _status.value = "Ready"
+            } catch (e: Exception) {
+                _status.value = "Error: Failed to initialize NER model."
+            }
+        }
+    }
 
     fun processAudioFile(audioUri: Uri?) {
         if (audioUri == null) {
@@ -45,10 +60,11 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
             _status.value = "Starting audio processing..."
             _transcriptionText.value = ""
             _redactedText.value = ""
+            _piiEntities.value = emptyList()
             var tempConvertedFile: File? = null
 
             try {
-                // --- THE DEFINITIVE FIX: Convert audio if it'''s not in the correct format ---
+                // --- THE DEFINITIVE FIX: Convert audio if it's not in the correct format ---
                 val uriToTranscribe: Uri = if (audioUri.scheme == "content") {
                     _status.value = "Converting audio file to required WAV format..."
                     val convertedFile = withContext(Dispatchers.IO) {
@@ -80,13 +96,14 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
                 _status.value = "Transcription complete. Analyzing for PII..."
                 _transcriptionText.value = transcriptionResult.fullText
 
-                val piiEntities = withContext(Dispatchers.IO) {
-                    mobileBertAnalyzer.analyze(transcriptionResult.fullText)
+                val entities = withContext(Dispatchers.IO) {
+                    bertNerOnnxManager.detectPii(transcriptionResult.fullText)
                 }
+                _piiEntities.value = entities
 
                 _status.value = "PII analysis complete. Generating redacted text..."
                 var redactedDisplayText = transcriptionResult.fullText
-                piiEntities.forEach { entity ->
+                entities.forEach { entity ->
                     redactedDisplayText = redactedDisplayText.replace(entity.text, "[REDACTED]")
                 }
                 _redactedText.value = redactedDisplayText
@@ -108,5 +125,10 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
 
     fun updateStatus(newStatus: String) {
         _status.value = newStatus
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        bertNerOnnxManager.close()
     }
 }

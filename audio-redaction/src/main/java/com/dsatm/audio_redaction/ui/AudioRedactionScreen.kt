@@ -51,6 +51,7 @@ fun AudioRedactionScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val transcriptionText by viewModel.transcriptionText.collectAsState()
     val redactedText by viewModel.redactedText.collectAsState()
+    val piiEntities by viewModel.piiEntities.collectAsState()
 
     // Initialize AudioRecorder
     LaunchedEffect(Unit) {
@@ -174,6 +175,41 @@ fun AudioRedactionScreen(
                         text = transcriptionText,
                         style = MaterialTheme.typography.bodyMedium
                     )
+                }
+            }
+        }
+
+        // PII Entities Display
+        if (piiEntities.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Identified Entities",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    piiEntities.forEach { entity ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = entity.text,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = entity.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
                 }
             }
         }
