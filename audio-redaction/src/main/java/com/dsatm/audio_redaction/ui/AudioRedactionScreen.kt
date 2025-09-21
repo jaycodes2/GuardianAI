@@ -5,30 +5,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,250 +17,148 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.dsatm.audio_redaction.audio.AudioRecorder
 import com.dsatm.audio_redaction.viewModel.AudioRedactionViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioRedactionScreen(
     viewModel: AudioRedactionViewModel = viewModel()
 ) {
-    var isRecording by remember { mutableStateOf(false) }
-    var audioRecorder by remember { mutableStateOf<AudioRecorder?>(null) }
-
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+
     val status by viewModel.status.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val transcriptionText by viewModel.transcriptionText.collectAsState()
     val redactedText by viewModel.redactedText.collectAsState()
     val piiEntities by viewModel.piiEntities.collectAsState()
 
-    // Initialize AudioRecorder
-    LaunchedEffect(Unit) {
-        audioRecorder = AudioRecorder(context)
-    }
+    var isRecording by remember { mutableStateOf(false) }
 
-    // Permission launcher for audio recording
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            // Permission is granted. Continue the action
-            audioRecorder?.let {
-                it.startRecording()
-                isRecording = true
-                viewModel.updateStatus("Recording audio...")
-            }
+    ) { granted ->
+        if (granted) {
+            // TODO: Add your recording start logic
+            viewModel.updateStatus("Recording permission granted - implement recording.")
         } else {
-            // Explain to the user that the feature is unavailable because the
-            // feature requires a permission that the user has denied.
             viewModel.updateStatus("Recording permission denied.")
         }
     }
 
-    // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            viewModel.processAudioFile(it)
+            viewModel.processAudio(it)
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Title
-        Text(
-            text = "Audio Redaction Tool",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        // Status Section
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Status",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = status)
-
-                if (isLoading) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    CircularProgressIndicator()
-                }
-            }
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Audio Redaction Tool") }
+            )
         }
-
-        // Control Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Record Button
+            Text(
+                text = "Status: $status",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
             Button(
                 onClick = {
-                    if (isRecording) {
-                        // Stop recording
-                        audioRecorder?.let { recorder ->
-                            val audioUri = recorder.stopRecording()
-                            isRecording = false
-                            // Launch a coroutine to add a delay before processing
-                            coroutineScope.launch {
-                                delay(500) // 500ms delay to allow file to be finalized
-                                audioUri?.let { viewModel.processAudioFile(it) }
-                            }
+                    when (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)) {
+                        PackageManager.PERMISSION_GRANTED -> {
+                            // TODO: Add your recording start/stop logic here.
+                            viewModel.updateStatus("Record button pressed - implement recording.")
                         }
-                    } else {
-                        // Start recording - check for permission first
-                        when (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO
-                        )) {
-                            PackageManager.PERMISSION_GRANTED -> {
-                                audioRecorder?.let { recorder ->
-                                    recorder.startRecording()
-                                    isRecording = true
-                                    viewModel.updateStatus("Recording audio...")
-                                }
-                            }
-                            else -> {
-                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
+                        else -> {
+                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
                     }
                 },
                 enabled = !isLoading,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = if (isRecording) "Stop Recording" else "Start Recording")
+                Text("Record Audio")
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Select File Button
             Button(
-                onClick = {
-                    filePickerLauncher.launch("audio/*")
-                },
-                enabled = !isLoading && !isRecording,
-                modifier = Modifier.weight(1f)
+                onClick = { filePickerLauncher.launch("audio/*") },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Select Audio File")
+                Text("Select Audio File")
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Transcription Results
-        if (transcriptionText.isNotEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Original Transcription",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = transcriptionText,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            if (transcriptionText.isNotBlank()) {
+                Text(
+                    "Transcription:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    transcriptionText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                )
             }
-        }
 
-        // PII Entities Display
-        if (piiEntities.isNotEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Identified Entities",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+            if (piiEntities.isNotEmpty()) {
+                Text(
+                    "Identified PII Entities:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
                     piiEntities.forEach { entity ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = entity.text,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = entity.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
+                        Text(
+                            "${entity.label}: ${entity.text}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
-        }
 
-        // Redacted Results
-        if (redactedText.isNotEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Redacted Text",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = redactedText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-
-        // Recording indicator
-        if (isRecording) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 8.dp)
+            if (redactedText.isNotBlank()) {
+                Text(
+                    "Redacted Text:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Recording in progress...",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
+                    redactedText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth()
                 )
+            }
+
+            if (isLoading) {
+                Spacer(modifier = Modifier.height(24.dp))
+                CircularProgressIndicator()
             }
         }
     }

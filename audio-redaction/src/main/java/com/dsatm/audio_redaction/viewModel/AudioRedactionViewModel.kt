@@ -1,4 +1,3 @@
-
 package com.dsatm.audio_redaction.viewModel
 
 import android.app.Application
@@ -49,7 +48,7 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    fun processAudioFile(audioUri: Uri?) {
+    fun processAudio(audioUri: Uri?) {
         if (audioUri == null) {
             _status.value = "Error: Audio file not found."
             return
@@ -64,7 +63,7 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
             var tempConvertedFile: File? = null
 
             try {
-                // --- THE DEFINITIVE FIX: Convert audio if it's not in the correct format ---
+                // Convert audio if it's not in the correct format
                 val uriToTranscribe: Uri = if (audioUri.scheme == "content") {
                     _status.value = "Converting audio file to required WAV format..."
                     val convertedFile = withContext(Dispatchers.IO) {
@@ -75,10 +74,9 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
                         _isLoading.value = false
                         return@launch
                     }
-                    tempConvertedFile = convertedFile // Track for cleanup
+                    tempConvertedFile = convertedFile
                     Uri.fromFile(convertedFile)
                 } else {
-                    // Audio is from our own recorder and is already in the correct format
                     audioUri
                 }
 
@@ -108,8 +106,6 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
                 }
                 _redactedText.value = redactedDisplayText
 
-                // Future audio redaction call would go here
-
                 _status.value = "Processing complete."
 
             } catch (e: Exception) {
@@ -117,7 +113,6 @@ class AudioRedactionViewModel(application: Application) : AndroidViewModel(appli
                 e.printStackTrace()
             } finally {
                 _isLoading.value = false
-                // Clean up the temporary converted file
                 tempConvertedFile?.delete()
             }
         }
