@@ -9,7 +9,6 @@ import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.RandomAccessFile
 
 class AudioRecorder(private val context: Context) {
     private var audioRecord: AudioRecord? = null
@@ -21,7 +20,9 @@ class AudioRecorder(private val context: Context) {
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        private fun getBufferSize() = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+
+        // It's safer to use at least twice the minimum buffer size
+        private fun getBufferSize(): Int = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT) * 2
     }
 
     @SuppressLint("MissingPermission")
@@ -29,20 +30,26 @@ class AudioRecorder(private val context: Context) {
         if (isRecording) return
 
         audioFile = File(context.externalCacheDir, "temp_recording.pcm")
+        val bufferSize = getBufferSize()
+
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.MIC,
             SAMPLE_RATE,
             CHANNEL_CONFIG,
             AUDIO_FORMAT,
-            getBufferSize()
+            bufferSize
         )
+
+        if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+            audioRecord?.release()
+            audioRecord = null
+            throw IllegalStateException("AudioRecord initialization failed")
+        }
 
         audioRecord?.let {
             it.startRecording()
             isRecording = true
-            recordingThread = Thread {
-                writeAudioDataToFile()
-            }
+            recordingThread = Thread { writeAudioDataToFile() }
             recordingThread?.start()
         }
     }
@@ -56,45 +63,46 @@ class AudioRecorder(private val context: Context) {
             release()
         }
         audioRecord = null
-        recordingThread?.join() // Wait for recording thread to finish
+        recordingThread?.join()
 
-        try {
+        return try {
             val wavFile = File(context.externalCacheDir, "final_recording.wav")
             addWavHeader(audioFile, wavFile)
-            audioFile.delete() // Clean up the raw PCM file
-            return Uri.fromFile(wavFile)
+            audioFile.delete()
+            Uri.fromFile(wavFile)
         } catch (e: IOException) {
             e.printStackTrace()
-            // In case of error, try to return the raw file for debugging
-            if(audioFile.exists()) return Uri.fromFile(audioFile)
+            if (audioFile.exists()) Uri.fromFile(audioFile) else null
         }
-        return null
     }
 
     private fun writeAudioDataToFile() {
         val data = ByteArray(getBufferSize())
-        val fileOutputStream = FileOutputStream(audioFile)
-        while (isRecording) {
-            val read = audioRecord?.read(data, 0, data.size) ?: 0
-            if (read != AudioRecord.ERROR_INVALID_OPERATION) {
-                try {
-                    fileOutputStream.write(data, 0, read)
-                } catch (e: IOException) {
-                    e.printStackTrace()
+        FileOutputStream(audioFile).use { fileOutputStream ->
+            while (isRecording) {
+                val read = audioRecord?.read(data, 0, data.size) ?: 0
+                if (read != AudioRecord.ERROR_INVALID_OPERATION && read > 0) {
+                    try {
+                        fileOutputStream.write(data, 0, read)
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        break
+                    }
                 }
             }
         }
-        fileOutputStream.close()
     }
 
     @Throws(IOException::class)
     private fun addWavHeader(pcmFile: File, wavFile: File) {
         val pcmData = pcmFile.readBytes()
         val wavOutputStream = FileOutputStream(wavFile)
-        val totalDataLen = pcmData.size + 36
-        val sampleRate = SAMPLE_RATE.toLong()
+
         val channels = 1
-        val byteRate = (SAMPLE_RATE * 16 * channels / 8).toLong()
+        val bitsPerSample = 16
+        val sampleRate = SAMPLE_RATE.toLong()
+        val byteRate = sampleRate * channels * bitsPerSample / 8
+        val totalDataLen = pcmData.size + 36
 
         val header = ByteArray(44)
         header[0] = 'R'.code.toByte()
@@ -129,9 +137,9 @@ class AudioRecorder(private val context: Context) {
         header[29] = (byteRate shr 8 and 0xff).toByte()
         header[30] = (byteRate shr 16 and 0xff).toByte()
         header[31] = (byteRate shr 24 and 0xff).toByte()
-        header[32] = (2 * 16 / 8).toByte()
+        header[32] = (channels * bitsPerSample / 8).toByte() // Correct fixed value: block align (bytes per frame)
         header[33] = 0
-        header[34] = 16
+        header[34] = bitsPerSample.toByte()
         header[35] = 0
         header[36] = 'd'.code.toByte()
         header[37] = 'a'.code.toByte()
@@ -142,8 +150,9 @@ class AudioRecorder(private val context: Context) {
         header[42] = (pcmData.size shr 16 and 0xff).toByte()
         header[43] = (pcmData.size shr 24 and 0xff).toByte()
 
-        wavOutputStream.write(header, 0, 44)
-        wavOutputStream.write(pcmData)
-        wavOutputStream.close()
+        wavOutputStream.use {
+            it.write(header, 0, 44)
+            it.write(pcmData)
+        }
     }
 }
