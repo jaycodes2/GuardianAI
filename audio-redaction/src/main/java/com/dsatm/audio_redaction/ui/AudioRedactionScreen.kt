@@ -1,5 +1,7 @@
 package com.dsatm.audio_redaction.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dsatm.audio_redaction.audio.AudioRecorder
 import com.dsatm.audio_redaction.viewModel.AudioRedactionViewModel
@@ -56,6 +59,24 @@ fun AudioRedactionScreen(
     // Initialize AudioRecorder
     LaunchedEffect(Unit) {
         audioRecorder = AudioRecorder(context)
+    }
+
+    // Permission launcher for audio recording
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission is granted. Continue the action
+            audioRecorder?.let {
+                it.startRecording()
+                isRecording = true
+                viewModel.updateStatus("Recording audio...")
+            }
+        } else {
+            // Explain to the user that the feature is unavailable because the
+            // feature requires a permission that the user has denied.
+            viewModel.updateStatus("Recording permission denied.")
+        }
     }
 
     // File picker launcher
@@ -127,11 +148,21 @@ fun AudioRedactionScreen(
                             }
                         }
                     } else {
-                        // Start recording
-                        audioRecorder?.let { recorder ->
-                            recorder.startRecording()
-                            isRecording = true
-                            viewModel.updateStatus("Recording audio...")
+                        // Start recording - check for permission first
+                        when (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO
+                        )) {
+                            PackageManager.PERMISSION_GRANTED -> {
+                                audioRecorder?.let { recorder ->
+                                    recorder.startRecording()
+                                    isRecording = true
+                                    viewModel.updateStatus("Recording audio...")
+                                }
+                            }
+                            else -> {
+                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         }
                     }
                 },
