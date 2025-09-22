@@ -1,7 +1,5 @@
 package com.dsatm.audio_redaction.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dsatm.audio_redaction.viewModel.AudioRedactionViewModel
 import androidx.compose.runtime.collectAsState
@@ -32,19 +29,6 @@ fun AudioRedactionScreen(
     val transcriptionText by viewModel.transcriptionText.collectAsState()
     val redactedText by viewModel.redactedText.collectAsState()
     val piiEntities by viewModel.piiEntities.collectAsState()
-
-    var isRecording by remember { mutableStateOf(false) }
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            // TODO: Add your recording start logic
-            viewModel.updateStatus("Recording permission granted - implement recording.")
-        } else {
-            viewModel.updateStatus("Recording permission denied.")
-        }
-    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -74,26 +58,6 @@ fun AudioRedactionScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-
-            Button(
-                onClick = {
-                    when (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)) {
-                        PackageManager.PERMISSION_GRANTED -> {
-                            // TODO: Add your recording start/stop logic here.
-                            viewModel.updateStatus("Record button pressed - implement recording.")
-                        }
-                        else -> {
-                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    }
-                },
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Record Audio")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = { filePickerLauncher.launch("audio/*") },

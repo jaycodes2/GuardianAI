@@ -2,7 +2,6 @@ package com.dsatm.audio_redaction.ui
 
 import android.content.Context
 import android.util.Log
-import com.dsatm.audio_redaction.audio.Recorder
 import com.dsatm.audio_redaction.audio.WhisperNativeClient
 import java.io.File
 
@@ -58,20 +57,5 @@ class WhisperTranscriptionManager(private val context: Context) {
      * Warning: This function blocks the calling thread while recording.
      * You should call this from a background thread.
      */
-    fun transcribeAudioRecording(durationMillis: Long = 5000L): String? {
-        if (!prepareModelFiles()) return null
 
-        val recorder = Recorder()
-        recorder.start()
-        try {
-            Thread.sleep(durationMillis)
-        } catch (e: InterruptedException) {
-            Log.e("WhisperTranscriptionManager", "Recording interrupted", e)
-            recorder.stop()
-            return null
-        }
-        recorder.stop()
-
-        return transcribeAudioFile(recorder.filePath)
-    }
 }
